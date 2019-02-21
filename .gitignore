@@ -1,0 +1,7 @@
+.idea/
+__pycache__/
+accessToken.json
+protocol.json
+metaData.json
+recording.tmcpr
+*.mcpr
