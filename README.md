@@ -47,7 +47,7 @@ The main purpose of this client is the recording of long timelapses.
 
 ```debug_mode``` : Outputs all received, sent and recorded packets.
 
-```auto-relog``` : If this option is enabled and the client gets disconnected, it will automatically reconnect after 3 seconds.
+```auto_relog``` : If this option is enabled and the client gets disconnected, it will automatically reconnect after 3 seconds.
 
 
 ## Other
@@ -60,6 +60,12 @@ The SARC account should be opped and in spectator mode to make the following ing
 ```!stop``` : Disconnects the client and stops recording.
 
 ```!ping``` : Sends a pong response back for testing.
+
+```!filesize``` : Sends the current filesize of the recording.
+
+```!time``` : Sends the length of the recording.
+
+```!timeonline``` : Sends the elapsed time since SARC was connected.
 
 ```!move``` : Teleports the SARC account to the executer.
 

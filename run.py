@@ -31,12 +31,11 @@ def run(config, email, password, debug, address):
 
     ## Main processing loop for incoming data.
     while True:
-        #try:
         ready_to_read = select.select([connection.socket], [], [], 0)[0]
         if ready_to_read:
             t = int(time.time() * 1000)
             packet_in = connection.receive_packet()
-            packet_recorded = int(t - start_time).to_bytes(4, byteorder='big', signed=True)
+            packet_recorded = int(t - start_time - afk_time).to_bytes(4, byteorder='big', signed=True)
             packet_recorded += len(packet_in.received).to_bytes(4, byteorder='big', signed=True)
             packet_recorded += packet_in.received
             packet_id = packet_in.read_varint()
@@ -159,6 +158,12 @@ def run(config, email, password, debug, address):
                                 break
                             if message == '!ping':
                                 utils.send_chat_message(connection, serverbound, 'pong!')
+                            if message == '!filesize':
+                                utils.send_chat_message(connection, serverbound, str(round(file_size / 1000000, 1)) + 'MB')
+                            if message == '!time':
+                                utils.send_chat_message(connection, serverbound, 'Recorded time: ' + utils.convert_millis(t - start_time - afk_time))
+                            if message == '!timeonline':
+                                utils.send_chat_message(connection, serverbound, 'Recorded time: ' + utils.convert_millis(t - start_time))
                             if message == '!move':
                                 packet_out = Packet()
                                 packet_out.write_varint(serverbound['Spectate'])
@@ -201,17 +206,23 @@ def run(config, email, password, debug, address):
 
             last_t = t # Save last packet timestamp for afk delta
 
-            # Every 300mb the client restarts to keep filesize resonable
-            if file_size > 300000000:
+            # Every 150mb the client restarts
+            if file_size > 150000000:
                 print('Filesize limit reached!')
+                utils.send_chat_message(connection, serverbound, 'Filesize limit reached, restarting...')
                 should_restart = True
+                time.sleep(1)
                 break
+                # Every 5h recording the the client restarts
+            elif t - start_time - afk_time > 1000 * 60 * 60 * 5:
+                    print('5h recording reached!')
+                    utils.send_chat_message(connection, serverbound, '5h recording reached, restarting...')
+                    should_restart = True
+                    time.sleep(1)
+                    break
 
         else:
             time.sleep(0.001) # Release to prevent 100% cpu usage
-        #except Exception as e: # Error occured
-        #    print(str(e))
-        #    break
 
     ## Handling the disconnect
     print('Disconnected')
@@ -219,13 +230,15 @@ def run(config, email, password, debug, address):
         with open('recording.tmcpr', 'ab+') as replay_recording:
             replay_recording.write(write_buffer)
             write_buffer = bytearray()
+    print('Time client was online: ' + utils.convert_millis(t - start_time))
+    print('Recorded time: ' + utils.convert_millis(t - start_time - afk_time))
 
     # Create metadata file
     with open('metaData.json', 'w') as json_file:
         meta_data = {}
         meta_data['singleplayer'] = 'false'
         meta_data['serverName'] = address[0]
-        meta_data['duration'] = int(time.time() * 1000) - start_time
+        meta_data['duration'] = int(time.time() * 1000) - start_time - afk_time
         meta_data['date'] = int(time.time() * 1000)
         meta_data['mcversion'] = mc_version
         meta_data['fileFormat'] = 'MCPR'
@@ -256,8 +269,8 @@ while True:
             break
         else:
             print('Reconnecting...')
-    except:
-        print('Connection lost')
+    except Exception as e:
+        print('Connection lost: ' + str(e))
         if config['auto_relog'] == False:
             break
         else:

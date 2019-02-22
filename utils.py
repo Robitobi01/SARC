@@ -282,8 +282,9 @@ def login(address, protocol_version, debug, access_token, uuid, user_name):
 
             # Login Success
             if packet_id == 0x02:
-                print('UUID: ' + packet_in.read_utf())
-                print('Name: ' + packet_in.read_utf())
+                u = packet_in.read_utf()
+                n = packet_in.read_utf()
+                print('Name: ' + n + '  |  UUID: ' + u)
                 print('Switching to PLAY')
                 break
 
@@ -308,3 +309,16 @@ def send_chat_message(connection, serverbound, message):
     packet_out.write_varint(serverbound['Chat Message (serverbound)'])
     packet_out.write_utf(message)
     connection.send_packet(packet_out)
+
+## Returns a string like h:m for given millis
+def convert_millis(millis):
+    seconds = int(millis / 1000) % 60
+    minutes = int(millis / (1000 * 60)) % 60
+    hours = int(millis / (1000 * 60 * 60))
+    if seconds < 10:
+        seconds = '0' + str(seconds)
+    if minutes < 10:
+        minutes = '0' + str(minutes)
+    if hours < 10:
+        hours = '0' + str(hours)
+    return str(hours) + ':' + str(minutes) + ':' + str(seconds)
