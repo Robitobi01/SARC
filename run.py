@@ -163,7 +163,7 @@ def run(config, email, password, debug, address):
                             if message == '!time':
                                 utils.send_chat_message(connection, serverbound, 'Recorded time: ' + utils.convert_millis(t - start_time - afk_time))
                             if message == '!timeonline':
-                                utils.send_chat_message(connection, serverbound, 'Recorded time: ' + utils.convert_millis(t - start_time))
+                                utils.send_chat_message(connection, serverbound, 'Time client was online: ' + utils.convert_millis(t - start_time))
                             if message == '!move':
                                 packet_out = Packet()
                                 packet_out.write_varint(serverbound['Spectate'])
@@ -200,6 +200,10 @@ def run(config, email, password, debug, address):
                         file_size += len(write_buffer)
                         write_buffer = bytearray()
 
+            # Prevent any kind of size increase due to packets beeing added to the buffer it gets cleared when not needed
+            if not config['recording'] and  len(write_buffer) > 0:
+                write_buffer = bytearray()
+
             # Increase afk timer when recording stopped, afk timer prevents afk time in replays
             if config['recording'] and t - last_player_movement > 5000:
                 afk_time += t - last_t
@@ -207,14 +211,14 @@ def run(config, email, password, debug, address):
             last_t = t # Save last packet timestamp for afk delta
 
             # Every 150mb the client restarts
-            if file_size > 150000000:
+            if config['recording'] and file_size > 150000000:
                 print('Filesize limit reached!')
                 utils.send_chat_message(connection, serverbound, 'Filesize limit reached, restarting...')
                 should_restart = True
                 time.sleep(1)
                 break
                 # Every 5h recording the the client restarts
-            elif t - start_time - afk_time > 1000 * 60 * 60 * 5:
+            elif config['recording'] and t - start_time - afk_time > 1000 * 60 * 60 * 5:
                     print('5h recording reached!')
                     utils.send_chat_message(connection, serverbound, '5h recording reached, restarting...')
                     should_restart = True
@@ -226,37 +230,39 @@ def run(config, email, password, debug, address):
 
     ## Handling the disconnect
     print('Disconnected')
-    if len(write_buffer) > 0: # Finish writing if buffer not empty
+    if config['recording'] and len(write_buffer) > 0: # Finish writing if buffer not empty
         with open('recording.tmcpr', 'ab+') as replay_recording:
             replay_recording.write(write_buffer)
             write_buffer = bytearray()
     print('Time client was online: ' + utils.convert_millis(t - start_time))
-    print('Recorded time: ' + utils.convert_millis(t - start_time - afk_time))
 
-    # Create metadata file
-    with open('metaData.json', 'w') as json_file:
-        meta_data = {}
-        meta_data['singleplayer'] = 'false'
-        meta_data['serverName'] = address[0]
-        meta_data['duration'] = int(time.time() * 1000) - start_time - afk_time
-        meta_data['date'] = int(time.time() * 1000)
-        meta_data['mcversion'] = mc_version
-        meta_data['fileFormat'] = 'MCPR'
-        meta_data['fileFormatVersion'] = '6'
-        meta_data['generator'] = 'SARC'
-        meta_data['selfId'] = -1
-        meta_data['players'] = player_uuids
-        json.dump(meta_data, json_file)
+    if config['recording']:
+        print('Recorded time: ' + utils.convert_millis(t - start_time - afk_time))
 
-    # Creating .mcpr zipfile based on timestamp
-    print('Creating .mcpr file...')
-    date = datetime.datetime.today().strftime('SARC_%Y%m%d_%H_%S')
-    zipf = zipfile.ZipFile(date + '.mcpr', 'w', zipfile.ZIP_DEFLATED)
-    zipf.write('metaData.json')
-    zipf.write('recording.tmcpr')
-    os.remove('metaData.json')
-    os.remove('recording.tmcpr')
-    print('Finished!')
+        # Create metadata file
+        with open('metaData.json', 'w') as json_file:
+            meta_data = {}
+            meta_data['singleplayer'] = 'false'
+            meta_data['serverName'] = address[0]
+            meta_data['duration'] = int(time.time() * 1000) - start_time - afk_time
+            meta_data['date'] = int(time.time() * 1000)
+            meta_data['mcversion'] = mc_version
+            meta_data['fileFormat'] = 'MCPR'
+            meta_data['fileFormatVersion'] = '6'
+            meta_data['generator'] = 'SARC'
+            meta_data['selfId'] = -1
+            meta_data['players'] = player_uuids
+            json.dump(meta_data, json_file)
+
+        # Creating .mcpr zipfile based on timestamp
+        print('Creating .mcpr file...')
+        date = datetime.datetime.today().strftime('SARC_%Y%m%d_%H_%S')
+        zipf = zipfile.ZipFile(date + '.mcpr', 'w', zipfile.ZIP_DEFLATED)
+        zipf.write('metaData.json')
+        zipf.write('recording.tmcpr')
+        os.remove('metaData.json')
+        os.remove('recording.tmcpr')
+        print('Finished!')
     connection.close()
     return should_restart
 
