@@ -5,7 +5,7 @@
   "password": "123456",
   "recording": true,
   "minimal_packets": true,
-  "daytime": 6000,
+  "daytime": -6000,
   "weather": false,
   "remove_items": true,
   "remove_bats": true,
