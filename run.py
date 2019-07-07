@@ -63,12 +63,13 @@ def run(config, email, password, debug, address):
                     connection.send_packet(packet_out)
 
             # If configured set daytime once and ignore all further time updates
-            if (config['daytime'] != -1 and packet_name == 'Time Update' and not
+            if (config['daytime'] < 24000 and config['daytime'] > 0 and packet_name == 'Time Update' and not
                 utils.is_bad_packet(packet_name, config['minimal_packets'])):
+                print('Set daytime to: ' + str(config['daytime']))
                 packet_daytime = Packet()
                 world_age = packet_in.read_long()
                 packet_daytime.write_long(world_age)
-                packet_daytime.write_long(config['daytime'])
+                packet_daytime.write_long(-config['daytime']) # If negative sun will stop moving at the Math.abs of the time
                 packet_recorded = int(t - start_time).to_bytes(4, byteorder='big', signed=True)
                 packet_recorded += len(packet_daytime.received).to_bytes(4, byteorder='big', signed=True)
                 packet_recorded += packet_daytime.received

@@ -57,7 +57,7 @@ class Packet:
                 return
             self.write(struct.pack('!B', remaining & 0x7F | 0x80))
             remaining >>= 7
-        raise ValueError(f'The value {value} is too big to send in a varint')
+        raise ValueError('The value' + str(value) + 'is too big to send in a varint')
 
     def read_utf(self):
         length = self.read_varint()
@@ -115,7 +115,7 @@ class Packet:
 
     def read_bytearray_as_str(self):
         length = self.read_varint()
-        return self._unpack(f'{length}s', self.read(length))
+        return self._unpack(str(length) + 's', self.read(length))
 
     def read_float(self):
         return self._unpack('f', self.read(4))
