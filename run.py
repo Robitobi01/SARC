@@ -28,6 +28,7 @@ def run(config, email, password, debug, address):
     open('recording.tmcpr', 'w').close() # Cleans recording file
     time.sleep(0.5)
     utils.request_ops(connection, serverbound) # Request op list once
+    if 'Time Update' in utils.BAD_PACKETS: utils.BAD_PACKETS.remove('Time Update')
 
     ## Main processing loop for incoming data.
     while True:
@@ -67,6 +68,7 @@ def run(config, email, password, debug, address):
                 utils.is_bad_packet(packet_name, config['minimal_packets'])):
                 print('Set daytime to: ' + str(config['daytime']))
                 packet_daytime = Packet()
+                packet_daytime.write_varint(int(list(clientbound.keys())[list(clientbound.values()).index('Time Update')]))
                 world_age = packet_in.read_long()
                 packet_daytime.write_long(world_age)
                 packet_daytime.write_long(-config['daytime']) # If negative sun will stop moving at the Math.abs of the time
