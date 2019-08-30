@@ -2,6 +2,7 @@ import uuid
 import struct
 from connection import *
 
+
 class Packet:
     def __init__(self):
         self.sent = bytearray()

@@ -5,32 +5,32 @@ import utils
 import select
 import zipfile
 import datetime
-from connection import *
 from packet import *
+
 
 def run(config, email, password, debug, address):
     access_token, uuid, user_name = utils.get_token(email, password)
     clientbound, serverbound, protocol_version, mc_version = utils.generate_protocol_table(address)
     connection = utils.login(address, protocol_version, debug, access_token, uuid, user_name)
-
+    print(clientbound)
     start_time = int(time.time() * 1000)
     last_player_movement = start_time
-    entity_packets = ['Entity', 'Entity Relative Move', 'Entity Look And Relative Move', 'Entity Look', 'Entity Teleport']
+    entity_packets = ['Entity', 'Entity Relative Move', 'Entity Look And Relative Move', 'Entity Look',
+                      'Entity Teleport']
     player_uuids = []
     player_ids = []
     blocked_entity_ids = []
     opped_players = []
     write_buffer = bytearray()
-    should_restart = config['auto_relog']
     file_size = 0
     afk_time = 0
     last_t = 0
-    open('recording.tmcpr', 'w').close() # Cleans recording file
+    open('recording.tmcpr', 'w').close()  # Cleans recording file
     time.sleep(0.5)
-    utils.request_ops(connection, serverbound) # Request op list once
+    utils.request_ops(connection, serverbound)  # Request op list once
     if 'Time Update' in utils.BAD_PACKETS: utils.BAD_PACKETS.remove('Time Update')
 
-    ## Main processing loop for incoming data.
+    # Main processing loop for incoming data.
     while True:
         ready_to_read = select.select([connection.socket], [], [], 0)[0]
         if ready_to_read:
@@ -47,9 +47,13 @@ def run(config, email, password, debug, address):
             # Answer keep aLive
             if packet_name == 'Keep Alive (clientbound)':
                 packet_out = Packet()
-                id = packet_in.read_varint()
                 packet_out.write_varint(serverbound['Keep Alive (serverbound)'])
-                packet_out.write_varint(id)
+                if protocol_version > 338:  # For some unnecessary reason keepalive changes to long after 1.12.1
+                    id = packet_in.read_long()
+                    packet_out.write_long(id)
+                else:
+                    id = packet_in.read_varint()
+                    packet_out.write_varint(id)
                 connection.send_packet(packet_out)
 
             # Respawn when dead
@@ -64,19 +68,21 @@ def run(config, email, password, debug, address):
                     connection.send_packet(packet_out)
 
             # If configured set daytime once and ignore all further time updates
-            if (config['daytime'] < 24000 and config['daytime'] > 0 and packet_name == 'Time Update' and not
-                utils.is_bad_packet(packet_name, config['minimal_packets'])):
+            if (24000 > config['daytime'] > 0 and packet_name == 'Time Update' and not
+            utils.is_bad_packet(packet_name, config['minimal_packets'])):
                 print('Set daytime to: ' + str(config['daytime']))
                 packet_daytime = Packet()
-                packet_daytime.write_varint(int(list(clientbound.keys())[list(clientbound.values()).index('Time Update')]))
+                packet_daytime.write_varint(
+                    int(list(clientbound.keys())[list(clientbound.values()).index('Time Update')]))
                 world_age = packet_in.read_long()
                 packet_daytime.write_long(world_age)
-                packet_daytime.write_long(-config['daytime']) # If negative sun will stop moving at the Math.abs of the time
+                packet_daytime.write_long(
+                    -config['daytime'])  # If negative sun will stop moving at the Math.abs of the time
                 packet_recorded = int(t - start_time).to_bytes(4, byteorder='big', signed=True)
                 packet_recorded += len(packet_daytime.received).to_bytes(4, byteorder='big', signed=True)
                 packet_recorded += packet_daytime.received
                 write_buffer += packet_recorded
-                utils.BAD_PACKETS.append('Time Update') # Ignore all further updates
+                utils.BAD_PACKETS.append('Time Update')  # Ignore all further updates
 
             # Remove weather if configured
             if not config['weather'] and packet_name == 'Change Game State':
@@ -110,12 +116,12 @@ def run(config, email, password, debug, address):
 
             # Keep track of spawned items and their ids
             if ((config['remove_items'] or config['remove_bats']) and
-                (packet_name == 'Spawn Object' or packet_name == 'Spawn Mob')):
+                    (packet_name == 'Spawn Object' or packet_name == 'Spawn Mob')):
                 entity_id = packet_in.read_varint()
                 uuid = packet_in.read_uuid()
                 type = packet_in.read_byte()
                 if ((packet_name == 'Spawn Object' and type == 2) or
-                    (packet_name == 'Spawn Mob' and type == 65)):
+                        (packet_name == 'Spawn Mob' and type == 65)):
                     blocked_entity_ids.append(entity_id)
                     packet_recorded = ''
 
@@ -134,7 +140,7 @@ def run(config, email, password, debug, address):
             # Record all "joining" or "leaving" tab updates to properly start recording players
             if packet_name == 'Player List Item':
                 action = packet_in.read_varint()
-                if (config['recording'] and action == 0): # int(time.time() * 1000) - last_player_movement <= 5000 and
+                if config['recording'] and action == 0:  # int(time.time() * 1000) - last_player_movement <= 5000 and
                     write_buffer += packet_recorded
                     player_number = packet_in.read_varint()
                     uuid = packet_in.read_uuid()
@@ -142,7 +148,7 @@ def run(config, email, password, debug, address):
 
             # Handle chat and process ingame commands
             if packet_name == 'Chat Message (clientbound)':
-                try: # For whatever reason there sometimes exists an empty chat packet..
+                try:  # For whatever reason there sometimes exists an empty chat packet..
                     chat = packet_in.read_utf()
                     chat = json.loads(chat)
                     if chat['translate'] == 'chat.type.text':
@@ -162,11 +168,16 @@ def run(config, email, password, debug, address):
                             if message == '!ping':
                                 utils.send_chat_message(connection, serverbound, 'pong!')
                             if message == '!filesize':
-                                utils.send_chat_message(connection, serverbound, str(round(file_size / 1000000, 1)) + 'MB')
+                                utils.send_chat_message(connection, serverbound,
+                                                        str(round(file_size / 1000000, 1)) + 'MB')
                             if message == '!time':
-                                utils.send_chat_message(connection, serverbound, 'Recorded time: ' + utils.convert_millis(t - start_time - afk_time))
+                                utils.send_chat_message(connection, serverbound,
+                                                        'Recorded time: ' + utils.convert_millis(
+                                                            t - start_time - afk_time))
                             if message == '!timeonline':
-                                utils.send_chat_message(connection, serverbound, 'Time client was online: ' + utils.convert_millis(t - start_time))
+                                utils.send_chat_message(connection, serverbound,
+                                                        'Time client was online: ' + utils.convert_millis(
+                                                            t - start_time))
                             if message == '!move':
                                 packet_out = Packet()
                                 packet_out.write_varint(serverbound['Spectate'])
@@ -174,10 +185,12 @@ def run(config, email, password, debug, address):
                                 connection.send_packet(packet_out)
                                 utils.send_chat_message(connection, serverbound, 'moved to ' + name)
                             if message == '!glow':
-                                utils.send_chat_message(connection, serverbound, '/effect @p minecraft:glowing 1000000 0 true')
+                                utils.send_chat_message(connection, serverbound,
+                                                        '/effect @p minecraft:glowing 1000000 0 true')
                         else:
                             print('<' + name + '> ' + message)
-                except: pass
+                except:
+                    pass
 
             # Process the requested list of opped players
             if packet_name == 'Tab-Complete (clientbound)':
@@ -191,7 +204,7 @@ def run(config, email, password, debug, address):
 
             # Actual recording
             if (config['recording'] and t - last_player_movement <= 5000 and not
-                utils.is_bad_packet(packet_name, config['minimal_packets'])):
+            utils.is_bad_packet(packet_name, config['minimal_packets'])):
                 # To prevent constant writing to the disk a buffer of 8kb is used
                 if packet_recorded != '':
                     write_buffer += packet_recorded
@@ -204,14 +217,14 @@ def run(config, email, password, debug, address):
                         write_buffer = bytearray()
 
             # Prevent any kind of size increase due to packets beeing added to the buffer it gets cleared when not needed
-            if not config['recording'] and  len(write_buffer) > 0:
+            if not config['recording'] and len(write_buffer) > 0:
                 write_buffer = bytearray()
 
             # Increase afk timer when recording stopped, afk timer prevents afk time in replays
             if config['recording'] and t - last_player_movement > 5000:
                 afk_time += t - last_t
 
-            last_t = t # Save last packet timestamp for afk delta
+            last_t = t  # Save last packet timestamp for afk delta
 
             # Every 150mb the client restarts
             if config['recording'] and file_size > 150000000:
@@ -222,18 +235,18 @@ def run(config, email, password, debug, address):
                 break
                 # Every 5h recording the the client restarts
             elif config['recording'] and t - start_time - afk_time > 1000 * 60 * 60 * 5:
-                    print('5h recording reached!')
-                    utils.send_chat_message(connection, serverbound, '5h recording reached, restarting...')
-                    should_restart = True
-                    time.sleep(1)
-                    break
+                print('5h recording reached!')
+                utils.send_chat_message(connection, serverbound, '5h recording reached, restarting...')
+                should_restart = True
+                time.sleep(1)
+                break
 
         else:
-            time.sleep(0.001) # Release to prevent 100% cpu usage
+            time.sleep(0.001)  # Release to prevent 100% cpu usage
 
-    ## Handling the disconnect
+    # Handling the disconnect
     print('Disconnected')
-    if config['recording'] and len(write_buffer) > 0: # Finish writing if buffer not empty
+    if config['recording'] and len(write_buffer) > 0:  # Finish writing if buffer not empty
         with open('recording.tmcpr', 'ab+') as replay_recording:
             replay_recording.write(write_buffer)
             write_buffer = bytearray()
@@ -244,17 +257,10 @@ def run(config, email, password, debug, address):
 
         # Create metadata file
         with open('metaData.json', 'w') as json_file:
-            meta_data = {}
-            meta_data['singleplayer'] = 'false'
-            meta_data['serverName'] = address[0]
-            meta_data['duration'] = int(time.time() * 1000) - start_time - afk_time
-            meta_data['date'] = int(time.time() * 1000)
-            meta_data['mcversion'] = mc_version
-            meta_data['fileFormat'] = 'MCPR'
-            meta_data['fileFormatVersion'] = '6'
-            meta_data['generator'] = 'SARC'
-            meta_data['selfId'] = -1
-            meta_data['players'] = player_uuids
+            meta_data = {'singleplayer': 'false', 'serverName': address[0],
+                         'duration': int(time.time() * 1000) - start_time - afk_time, 'date': int(time.time() * 1000),
+                         'mcversion': mc_version, 'fileFormat': 'MCPR', 'fileFormatVersion': '6', 'generator': 'SARC',
+                         'selfId': -1, 'players': player_uuids}
             json.dump(meta_data, json_file)
 
         # Creating .mcpr zipfile based on timestamp
@@ -269,20 +275,21 @@ def run(config, email, password, debug, address):
     connection.close()
     return should_restart
 
+
 config, email, password = utils.load_config()
 debug = config['debug_mode']
 address = (config['ip'], int(config['port']))
 while True:
-    try:
-        if run(config, email, password, debug, address) == False:
-            break
-        else:
-            print('Reconnecting...')
-    except Exception as e:
-        print('Connection lost: ' + str(e))
-        if config['auto_relog'] == False:
-            break
-        else:
-            print('Reconnecting...')
+    #try:
+    if not run(config, email, password, debug, address):
+        break
+    else:
+        print('Reconnecting...')
+   # except Exception as e:
+    #    print('Connection lost: ' + str(e))
+    #    if not config['auto_relog']:
+    #        break
+    #    else:
+    #        print('Reconnecting...')
     time.sleep(3)
 print('Ending...')

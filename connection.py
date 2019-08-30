@@ -4,9 +4,10 @@ from packet import *
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
-## Socket connection to the minecraft server
+
+# Socket connection to the minecraft server
 class TCPConnection(Packet):
-    def __init__(self, addr, debug = False, timeout=60):
+    def __init__(self, addr, debug = False, timeout=10):
         Packet.__init__(self)
         self.encrypt = False
         self.debug = debug

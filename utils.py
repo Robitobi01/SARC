@@ -5,21 +5,22 @@ import select
 import requests
 import urllib.request
 from _sha1 import sha1
-from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.asymmetric.padding import PKCS1v15
 from cryptography.hazmat.primitives.serialization import load_der_public_key
 from connection import *
 from packet import *
 
-## Script to automatically generate name to packet_id tables based on data from wiki.vg
-## Currrently avaliable protocol versions:
-##  340, 338, 335, 316, 315, 210, 110, 109, 107, 47, 5, 4
 
-## Shortens decode with error avoidance
+# Script to automatically generate name to packet_id tables based on data from wiki.vg
+# Currrently avaliable protocol versions:
+#  340, 338, 335, 316, 315, 210, 110, 109, 107, 47, 5, 4
+
+# Shortens decode with error avoidance
 def decode(s, encoding='utf-8', errors='ignore'):
     return s.decode(encoding=encoding, errors=errors)
 
-## Gets a list of links to the version appropitate article
+
+# Gets a list of links to the version appropitate article
 def gen_version_links():
     page = urllib.request.urlopen('http://wiki.vg/Protocol_version_numbers')
     html = page.read().decode('utf-8', errors='ignore').splitlines()
@@ -27,13 +28,15 @@ def gen_version_links():
     for line in html:
         if 'Retrieved from' in line:
             break
-        if 'title=Protocol' in line and int(line.split('oldid=')[1].split('">page')[0]) > 5000:# and 'Pre-release_protocol' not in line:
+        if 'title=Protocol' in line and int(
+                line.split('oldid=')[1].split('">page')[0]) > 5000:  # and 'Pre-release_protocol' not in line:
             link = line.replace('amp;', '').split('href="')[1].split('">page')[0]
             version = int(html[html.index(line) - 2].split('> ')[1])
             version_links[version] = link
     return version_links
 
-## Gets the list of play state server & clientbound packets for the given version
+
+# Gets the list of play state server & clientbound packets for the given version
 def gen_version_protocol(version):
     version_links = gen_version_links()
     if version not in version_links:
@@ -43,26 +46,28 @@ def gen_version_protocol(version):
     html = page.read().decode('utf-8', errors='ignore').splitlines()
     counter = []
     temp = {}
-    packets = {}
-    packets['Clientbound'] = {}
-    packets['Serverbound'] = {}
-    for line in html: # Gets a list of all the index entries(e.g. 4.1.1 Keep Alive)
+    packets = {'Clientbound': {}, 'Serverbound': {}}
+    for line in html:  # Gets a list of all the index entries(e.g. 4.1.1 Keep Alive)
         if '<li class="toclevel-' in line:
             number = line.split('class="tocnumber">')[1].split('</span>')[0]
             if number.count('.') == 2:
                 name = line.split('class="toctext">')[1].split('</span>')[0]
                 counter.append(number[:1])
                 temp[number] = name
-
-    counter = {x:counter.count(x) for x in counter} # Counts amount of first index numbers(e.g. 4 <-- .1.1 Keep Alive)
-    for key in temp: # Gets play state from first index number by taking most common one
+    counter = {x: counter.count(x) for x in counter}  # Counts amount of first index numbers(e.g. 4 <-- .1.1 Keep Alive)
+    for key in temp:  # Gets play state from first index number by taking most common one
         if key[:1] == max(counter, key=counter.get):
-            packet_id = int(key[4:].split(':')[0]) - 1 # Generates packet_id by -1 from the last index number(e.g. 4.1. --> 1 - 1 = 0x0)
-            if int(key[2:3]) == 1: packets['Clientbound'][packet_id] = temp[key]
-            else: packets['Serverbound'][temp[key]] = packet_id # Is client or server side by the middle index number(e.g. 4. --> 1.1)
+            packet_id = int(key[4:].split(':')[
+                                0]) - 1  # Generates packet_id by -1 from the last index number(e.g. 4.1. --> 1 - 1 = 0x0)
+            if int(key[2:3]) == 1:
+                packets['Clientbound'][str(packet_id)] = temp[key]
+            else:
+                packets['Serverbound'][
+                    temp[key]] = packet_id  # Is client or server side by the middle index number(e.g. 4. --> 1.1)
     return {str(version): packets}
 
-## Makes request to the Mojang authentication server(Yggdrasil)
+
+# Makes request to the Mojang authentication server(Yggdrasil)
 def authenticate(username, password):
     response = requests.post('https://authserver.mojang.com/authenticate',
                              data=json.dumps({'username': username, 'password': password,
@@ -70,7 +75,8 @@ def authenticate(username, password):
                              headers={'content-type': 'application/json'})
     return response.json()
 
-## Requests authentication and returns a dict of the needed information
+
+# Requests authentication and returns a dict of the needed information
 def generate_dict(hash, email, password):
     data = dict()
     response = authenticate(email, password)
@@ -78,11 +84,12 @@ def generate_dict(hash, email, password):
     access_token = response['accessToken']
     uuid = response['selectedProfile']['id']
     user_name = response['selectedProfile']['name']
-    data[hash] = {'access_token' : access_token, 'uuid' : uuid, 'user_name' : user_name, 'uses' : 1, 'created' : int(time.time())}
+    data[hash] = {'access_token': access_token, 'uuid': uuid, 'user_name': user_name, 'uses': 1,
+                  'created': int(time.time())}
     return data
 
 
-## Useless Packet Handling
+# Useless Packet Handling
 # Packets that are ignored by ReplayMod dont get recorded to reduce filesize
 # https://github.com/ReplayMod/ReplayMod/blob/8314803cda88a81ee16969e5ab89dabbd131c52e/src/main/java/com/replaymod/replay/ReplaySender.java#L79
 BAD_PACKETS = [
@@ -100,7 +107,7 @@ BAD_PACKETS = [
     'Camera',
     'Player Abilities (clientbound)',
     'Title'
-    ]
+]
 # List of packets that are not neccesary for a normal replay but still get recorded
 # by ReplayMod. These packets get ignored with enabling "minimal_packets"
 # wich is the preffered option for timelapses to reduced file size even further.
@@ -121,35 +128,40 @@ USELESS_PACKETS = [
     'Teams',
     'Update Score',
     'Sound Effect'
-    ]
+]
+
+
 # Test if given packet hould be ignored
-def is_bad_packet(packet_name, minimal_packets = False):
+def is_bad_packet(packet_name, minimal_packets=False):
     if packet_name in BAD_PACKETS:
         return True
     if minimal_packets and packet_name in USELESS_PACKETS:
         return True
     return False
 
-## Reading config
+
+# Reading config
 def load_config():
-    with open('config.json' , 'r') as json_file:
+    with open('config.json', 'r') as json_file:
         config = json.load(json_file)
         email = config['username']
         password = config['password']
     return config, email, password
 
+
+# Check if valid token exists, else make a new one
 def get_token(email, password):
-## Access token caching.
+    # Access token caching.
     hash = sha1()
     hash.update(str.encode(email))
     hash = hash.hexdigest()
-    if not os.path.exists('accessToken.json'): # Create file if not existing
+    if not os.path.exists('accessToken.json'):  # Create file if not existing
         with open('accessToken.json', 'w'): pass
 
     with open('accessToken.json', 'r') as file:
         try:
             json_data = json.load(file)
-        except json.decoder.JSONDecodeError: # File is new and no json avaliable
+        except json.decoder.JSONDecodeError:  # File is new and no json avaliable
             json_data = ''
     # Hashed email doesnt exist --> account not cached --> refresh
     # Token used more than 10 times --> refresh
@@ -174,7 +186,8 @@ def get_token(email, password):
     user_name = json_data[hash]['user_name']
     return access_token, uuid, user_name
 
-## Serverping to get protocol version and create table
+
+# Serverping to get protocol version and create table
 def generate_protocol_table(address):
     # Handshake with Next state set to 1 (status) to receive protocol version
     protocol_connection = TCPConnection(address)
@@ -189,19 +202,19 @@ def generate_protocol_table(address):
     packet_out.write_varint(0x00)
     protocol_connection.send_packet(packet_out)
     while True:
-            ready_to_read = select.select([protocol_connection.socket], [], [], 0)[0]
-            if ready_to_read:
-                packet_in = protocol_connection.receive_packet()
-                packet_id = packet_in.read_varint()
-                protocol_connection.socket.close()
-                status_data = json.loads(packet_in.read_utf())
-                protocol_version = status_data['version']['protocol']
-                mc_version = status_data['version']['name']
-                break
-
+        ready_to_read = select.select([protocol_connection.socket], [], [], 0)[0]
+        if ready_to_read:
+            packet_in = protocol_connection.receive_packet()
+            packet_id = packet_in.read_varint()
+            protocol_connection.socket.close()
+            status_data = json.loads(packet_in.read_utf())
+            protocol_version = status_data['version']['protocol']
+            mc_version = status_data['version']['name']
+            break
+    print(status_data)
     # Generating needed protocol version table
     try:
-        with open('protocol.json' , 'r') as json_file:
+        with open('protocol.json', 'r') as json_file:
             json_data = json.load(json_file)
     except:
         json_data = ''
@@ -211,12 +224,14 @@ def generate_protocol_table(address):
             json.dump(packets, json_file, indent=4)
             print('Protocol generated')
             json_data = packets
-    else: print('Protocol avaliable')
+    else:
+        print('Protocol avaliable')
     clientbound = json_data[str(protocol_version)]['Clientbound']
     serverbound = json_data[str(protocol_version)]['Serverbound']
     return clientbound, serverbound, protocol_version, mc_version
 
-## Login and encryption + compression
+
+# Login and encryption + compression
 def login(address, protocol_version, debug, access_token, uuid, user_name):
     connection = TCPConnection(address, debug)
 
@@ -294,7 +309,8 @@ def login(address, protocol_version, debug, access_token, uuid, user_name):
                 print('Compression enabled, threshold:', connection.compression_threshold)
     return connection
 
-## Send a tabcomplete to get full list of operators
+
+# Send a tabcomplete to get full list of operators
 def request_ops(connection, serverbound):
     packet_out = Packet()
     packet_out.write_varint(serverbound['Tab-Complete (serverbound)'])
@@ -303,14 +319,16 @@ def request_ops(connection, serverbound):
     packet_out.write_bool(False)
     connection.send_packet(packet_out)
 
-## Send a chatmessage
+
+# Send a chatmessage
 def send_chat_message(connection, serverbound, message):
     packet_out = Packet()
     packet_out.write_varint(serverbound['Chat Message (serverbound)'])
     packet_out.write_utf(message)
     connection.send_packet(packet_out)
 
-## Returns a string like h:m for given millis
+
+# Returns a string like h:m for given millis
 def convert_millis(millis):
     seconds = int(millis / 1000) % 60
     minutes = int(millis / (1000 * 60)) % 60
