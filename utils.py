@@ -112,7 +112,7 @@ BAD_PACKETS = [
 # by ReplayMod. These packets get ignored with enabling "minimal_packets"
 # wich is the preffered option for timelapses to reduced file size even further.
 USELESS_PACKETS = [
-    'Keep Alive (clientbound)'
+    'Keep Alive (clientbound)',
     'Statistics',
     'Server Difficulty',
     'Tab-Complete (clientbound)',
