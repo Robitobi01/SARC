@@ -69,7 +69,7 @@ The SARC account should be opped and in spectator mode to make the following ing
 
 ```!move``` : Teleports the SARC account to the executer.
 
-```!glow``` : Gives the sarc account glowing effect for better visibility.
+```!glow``` : Gives the SARC account glowing effect for better visibility.
 
 #### Developers
 - Robi
