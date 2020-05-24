@@ -31,7 +31,7 @@ def gen_version_links():
         if 'title=Protocol' in line and int(
                 line.split('oldid=')[1].split('">page')[0]) > 5000:  # and 'Pre-release_protocol' not in line:
             link = line.replace('amp;', '').split('href="')[1].split('">page')[0]
-            version = int(html[html.index(line) - 2].split('> ')[1])
+            version = int(html[html.index(line) - 2].split('>')[1])
             version_links[version] = link
     return version_links
 
