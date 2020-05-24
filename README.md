@@ -49,6 +49,8 @@ The main purpose of this client is the recording of long timelapses.
 
 ```auto_relog``` : If this option is enabled and the client gets disconnected, it will automatically reconnect after 3 seconds.
 
+```require_op``` : If true, the client will only accept commands by opped players.
+
 
 ## Other
 

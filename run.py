@@ -1,6 +1,7 @@
 import os
 import time
 import json
+import traceback
 import utils
 import select
 import zipfile
@@ -28,7 +29,8 @@ def run(config, email, password, debug, address):
     open('recording.tmcpr', 'w').close()  # Cleans recording file
     time.sleep(0.5)
     utils.request_ops(connection, serverbound)  # Request op list once
-    if 'Time Update' in utils.BAD_PACKETS: utils.BAD_PACKETS.remove('Time Update')
+    if 'Time Update' in utils.BAD_PACKETS:
+        utils.BAD_PACKETS.remove('Time Update')
 
     # Main processing loop for incoming data.
     while True:
@@ -157,6 +159,9 @@ def run(config, email, password, debug, address):
                         message = chat['with'][1]
                         if name in opped_players:
                             print('<' + name + '(OP)> ' + message)
+                        else:
+                            print('<' + name + '> ' + message)
+                        if (config['require_op'] and name in opped_players) or not config['require_op']:
                             if message == '!relog':
                                 should_restart = True
                                 print('Relogging...')
@@ -187,8 +192,6 @@ def run(config, email, password, debug, address):
                             if message == '!glow':
                                 utils.send_chat_message(connection, serverbound,
                                                         '/effect @p minecraft:glowing 1000000 0 true')
-                        else:
-                            print('<' + name + '> ' + message)
                 except:
                     pass
 
@@ -280,16 +283,19 @@ config, email, password = utils.load_config()
 debug = config['debug_mode']
 address = (config['ip'], int(config['port']))
 while True:
-    #try:
-    if not run(config, email, password, debug, address):
-        break
-    else:
-        print('Reconnecting...')
-   # except Exception as e:
-    #    print('Connection lost: ' + str(e))
-    #    if not config['auto_relog']:
-    #        break
-    #    else:
-    #        print('Reconnecting...')
+    try:
+        if not run(config, email, password, debug, address):
+            break
+        else:
+            print('Reconnecting...')
+    except Exception as e:
+        if debug:
+            print('Connection lost: ' + traceback.format_exc())
+        else:
+            print('Connection lost: ' + str(e))
+        if not config['auto_relog']:
+            break
+        else:
+            print('Reconnecting...')
     time.sleep(3)
 print('Ending...')

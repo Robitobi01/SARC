@@ -7,7 +7,7 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 
 # Socket connection to the minecraft server
 class TCPConnection(Packet):
-    def __init__(self, addr, debug = False, timeout=10):
+    def __init__(self, addr, debug=False, timeout=10):
         Packet.__init__(self)
         self.encrypt = False
         self.debug = debug
