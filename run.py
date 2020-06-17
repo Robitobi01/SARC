@@ -28,7 +28,7 @@ def run(config, email, password, debug, address):
     last_t = 0
     open('recording.tmcpr', 'w').close()  # Cleans recording file
     time.sleep(0.5)
-    utils.request_ops(connection, serverbound)  # Request op list once
+    utils.request_ops(connection, serverbound, protocol_version)  # Request op list once
     if 'Time Update' in utils.BAD_PACKETS:
         utils.BAD_PACKETS.remove('Time Update')
 
@@ -154,8 +154,8 @@ def run(config, email, password, debug, address):
                     chat = packet_in.read_utf()
                     chat = json.loads(chat)
                     if chat['translate'] == 'chat.type.text':
-                        name = chat['with'][0]['hoverEvent']['value']['text'].split('"')[1]
-                        uuid = chat['with'][0]['hoverEvent']['value']['text'].split('"')[3]
+                        name = chat['with'][0]['hoverEvent']['value']['text'].split(':"')[1].split('"', 1)[0]
+                        uuid = chat['with'][0]['hoverEvent']['value']['text'].split(':"')[2].split('"', 1)[0]
                         message = chat['with'][1]
                         if name in opped_players:
                             print('<' + name + '(OP)> ' + message)
@@ -197,10 +197,21 @@ def run(config, email, password, debug, address):
 
             # Process the requested list of opped players
             if packet_name == 'Tab-Complete (clientbound)':
-                count = packet_in.read_varint()
                 matches = []
-                for i in range(0, count):
-                    matches.append(packet_in.read_utf())
+                if protocol_version <= 404:
+                    count = packet_in.read_varint()
+                    for i in range(count):
+                        matches.append(packet_in.read_utf())
+                else:
+                    id = packet_in.read_varint()
+                    start = packet_in.read_varint()
+                    length = packet_in.read_varint()
+                    count = packet_in.read_varint()
+                    for i in range(count):
+                        matches.append(packet_in.read_utf())
+                        has_tooltip = packet_in.read_bool()
+                        if has_tooltip:
+                            tooltip = packet_in.read_utf()
                 for match in matches:
                     if match not in opped_players:
                         opped_players.append(match)
@@ -245,7 +256,7 @@ def run(config, email, password, debug, address):
                 break
 
         else:
-            time.sleep(0.001)  # Release to prevent 100% cpu usage
+            time.sleep(0.0001)  # Release to prevent 100% cpu usage
 
     # Handling the disconnect
     print('Disconnected')
@@ -262,8 +273,9 @@ def run(config, email, password, debug, address):
         with open('metaData.json', 'w') as json_file:
             meta_data = {'singleplayer': 'false', 'serverName': address[0],
                          'duration': int(time.time() * 1000) - start_time - afk_time, 'date': int(time.time() * 1000),
-                         'mcversion': mc_version, 'fileFormat': 'MCPR', 'fileFormatVersion': '6', 'generator': 'SARC',
-                         'selfId': -1, 'players': player_uuids}
+                         'mcversion': mc_version, 'fileFormat': 'MCPR', 'generator': 'SARC',
+                         'fileFormatVersion': utils.get_metadata_file_format(protocol_version),
+                         'protocol': protocol_version, 'selfId': -1, 'players': player_uuids}
             json.dump(meta_data, json_file)
 
         # Creating .mcpr zipfile based on timestamp

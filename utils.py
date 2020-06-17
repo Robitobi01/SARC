@@ -2,6 +2,7 @@ import os
 import time
 import json
 import select
+import random
 import requests
 import urllib.request
 from _sha1 import sha1
@@ -13,7 +14,7 @@ from packet import *
 
 # Script to automatically generate name to packet_id tables based on data from wiki.vg
 # Currrently avaliable protocol versions:
-#  340, 338, 335, 316, 315, 210, 110, 109, 107, 47, 5, 4
+# 4 5 47 107 109 110 210 315 316 335 338 340 401 404 498 578
 
 # Shortens decode with error avoidance
 def decode(s, encoding='utf-8', errors='ignore'):
@@ -33,12 +34,18 @@ def gen_version_links():
             link = line.replace('amp;', '').split('href="')[1].split('">page')[0]
             version = int(html[html.index(line) - 2].split('>')[1])
             version_links[version] = link
+        if '"/Protocol"' in line:
+            link = 'https://wiki.vg/Protocol'
+            version = int(html[html.index(line) - 2].split('>')[1])
+            version_links[version] = link
+
     return version_links
 
 
 # Gets the list of play state server & clientbound packets for the given version
 def gen_version_protocol(version):
     version_links = gen_version_links()
+    print(version_links)
     if version not in version_links:
         raise IOError('Protocol version doesnt get supported')
     link = version_links[version]
@@ -311,12 +318,17 @@ def login(address, protocol_version, debug, access_token, uuid, user_name):
 
 
 # Send a tabcomplete to get full list of operators
-def request_ops(connection, serverbound):
+def request_ops(connection, serverbound, protocol_verison):
     packet_out = Packet()
     packet_out.write_varint(serverbound['Tab-Complete (serverbound)'])
-    packet_out.write_utf('/deop ')
-    packet_out.write_bool(True)
-    packet_out.write_bool(False)
+    # Changed with 1.13 Chat overhaul
+    if protocol_verison < 404:
+        packet_out.write_utf('/deop ')
+        packet_out.write_bool(True)
+        packet_out.write_bool(False)
+    else:
+        packet_out.write_varint(random.randint(0, 9999))
+        packet_out.write_utf('/deop ')
     connection.send_packet(packet_out)
 
 
@@ -340,3 +352,13 @@ def convert_millis(millis):
     if hours < 10:
         hours = '0' + str(hours)
     return str(hours) + ':' + str(minutes) + ':' + str(seconds)
+
+
+def get_metadata_file_format(used_protocol):
+    # https://github.com/ReplayMod/ReplayStudio/blob/e6b1b2256ed373ffa809effa5020c76974b14661/src/main/java/com/replaymod/replaystudio/replay/ReplayMetaData.java#L42-L56
+    # https://github.com/ReplayMod/ReplayStudio/issues/9
+    protocol_versions = {47: 1, 110: 2, 210: 3, 315: 4, 316: 5, 335: 6, 338: 7, 5: 8, 340: 9, 393: 13}
+    for version in sorted(protocol_versions.keys(), reverse=True):
+        if version <= used_protocol:
+            return protocol_versions[version]
+    return protocol_versions[393]

@@ -8,7 +8,8 @@ Written in Python.
 This is a stand alone client to join Minecraft servers. The client is able to record the incoming packets of the server in the `.TMCPR` format which is compatible with ReplayMod.
 This client can be used as lightweight AFK client when recording is disabled.
 The main purpose of this client is the recording of long timelapses.
-
+This client can join vanilla servers and does **not** require any server side support like plugins. It should be able to join custom servers like spigot aswell since it performs the vanilla joining handshake, any kind of server side anti cheat is probably going to cause issues.
+The used Accoutn should be opped and in spectator mode. Basic functionality might exist, however using an account without op is not supported or tested.
 
 #### Advantages compared to normal user recording with ReplayMod
 
@@ -63,9 +64,9 @@ The SARC account should be opped and in spectator mode to make the following ing
 
 ```!ping``` : Sends a pong response back for testing.
 
-```!filesize``` : Sends the current filesize of the recording.
+```!filesize``` : Sends current filesize of the recording.
 
-```!time``` : Sends the length of the recording.
+```!time``` : Sends the length of current recording.
 
 ```!timeonline``` : Sends the elapsed time since SARC was connected.
 
@@ -73,7 +74,47 @@ The SARC account should be opped and in spectator mode to make the following ing
 
 ```!glow``` : Gives the SARC account glowing effect for better visibility.
 
-#### Developers
+
+
+## Currrently avaliable protocol versions:
+4 - Minecraft 1.7.2 & 1.7.4 & 1.7.5
+
+5 - Minecraft 1.7.6 & 1.7.7 & 1.7.8 & 1.7.9 & 1.7.10
+
+47 - Minecraft 1.8 & 1.8.1 & 1.8.2 & 1.8.3 & 1.8.4 & 1.8.5 & 1.8.6 & 1.8.7 & 1.8.8 & 1.8.9
+
+107 - Minecraft 1.9
+
+109 - Minecraft 1.9.2
+
+110 - Minecraft 1.9.3 & 1.9.4
+
+210 - Minecraft 1.10 & 1.10.1 & 1.10.2
+
+315 - Minecraft 1.11
+
+316 - Minecraft 1.11.1 & 1.11.2
+
+335 - Minecraft 1.12
+
+338 - Minecraft 1.12.1
+
+340 - Minecraft 1.12.2
+
+401 - Minecraft 1.13.1
+
+404 - Minecraft 1.13.2
+
+498 - Minecraft 1.14.4
+
+578 - Minecraft 1.15.2
+
+
+Any kind of protocol version in between these listed ones, is going to end up using the protocol table from the next lower listed one.
+Joining and/or recording in protocol versions in between might still work even if its not listed here.
+SARC only interacts with a very small amount of different packet types, all other packets just get saved to a file. Therefor changes to the procol often have very little effect on this client.
+
+### Developers
 - Robi
 - Nessie
 - Thanks to elij for help
