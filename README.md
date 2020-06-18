@@ -8,8 +8,8 @@ Written in Python.
 This is a stand alone client to join Minecraft servers. The client is able to record the incoming packets of the server in the `.TMCPR` format which is compatible with ReplayMod.
 This client can be used as lightweight AFK client when recording is disabled.
 The main purpose of this client is the recording of long timelapses.
-This client can join vanilla servers and does **not** require any server side support like plugins. It should be able to join custom servers like spigot aswell since it performs the vanilla joining handshake, any kind of server side anti cheat is probably going to cause issues.
-The used Accoutn should be opped and in spectator mode. Basic functionality might exist, however using an account without op is not supported or tested.
+This client can join vanilla servers and does **not** require any server side support like plugins. It should be able to join custom servers like spigot aswell since it performs the vanilla joining handshake. Any kind of server side anti cheat is probably going to cause issues.
+The used Account should be opped and in spectator mode. Basic functionality might exist, however using an account without op is not supported or tested.
 
 #### Advantages compared to normal user recording with ReplayMod
 
@@ -36,7 +36,7 @@ The used Accoutn should be opped and in spectator mode. Basic functionality migh
 
 ```recording``` : True if SARC should actually record anything.
 
-```minimal_packets``` : SARC will only record the minimum needed packets for a proper recording when this option is turned on. This should be used to decrease the filesize of recordings while recording long term projects (timelapse).
+```minimal_packets``` : SARC will only record the minimum needed packets for a proper recording. This should be used to decrease the filesize of recordings while recording long term projects. (Warning: Maps will dissapear)
 
 ```daytime``` : Sets the daytime once to the defined time in the recording and ignores all further changes from the server. If set to `-1` the normal day/night cycle is recorded.
 
@@ -110,11 +110,9 @@ The SARC account should be opped and in spectator mode to make the following ing
 578 - Minecraft 1.15.2
 
 
-Any kind of protocol version in between these listed ones, is going to end up using the protocol table from the next lower listed one.
-Joining and/or recording in protocol versions in between might still work even if its not listed here.
 SARC only interacts with a very small amount of different packet types, all other packets just get saved to a file. Therefor changes to the procol often have very little effect on this client.
 
-### Developers
+## Developers
 - Robi
 - Nessie
 - Thanks to elij for help
