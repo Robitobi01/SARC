@@ -122,8 +122,8 @@ def run(config, email, password, debug, address):
                 entity_id = packet_in.read_varint()
                 uuid = packet_in.read_uuid()
                 type = packet_in.read_byte()
-                if ((packet_name == 'Spawn Object' and type == 2) or
-                        (packet_name == 'Spawn Mob' and type == 65)):
+                if ((packet_name == 'Spawn Object' and type == 2 and protocol_version > 340) or
+                        (packet_name == 'Spawn Mob' and ((type == 65 and protocol_version <= 340) or (type == 3 and protocol_version > 340)))):
                     blocked_entity_ids.append(entity_id)
                     packet_recorded = ''
 
@@ -140,7 +140,8 @@ def run(config, email, password, debug, address):
                     recorded_packet = ''
 
             # Record all "joining" or "leaving" tab updates to properly start recording players
-            if packet_name == 'Player List Item':
+            # In 1.14.4 Player List Item changes to Player Info
+            if (protocol_version < 498 and packet_name == 'Player List Item') or (protocol_version >= 498 and packet_name == 'Player Info'):
                 action = packet_in.read_varint()
                 if config['recording'] and action == 0:  # int(time.time() * 1000) - last_player_movement <= 5000 and
                     write_buffer += packet_recorded
@@ -190,8 +191,13 @@ def run(config, email, password, debug, address):
                                 connection.send_packet(packet_out)
                                 utils.send_chat_message(connection, serverbound, 'moved to ' + name)
                             if message == '!glow':
-                                utils.send_chat_message(connection, serverbound,
-                                                        '/effect @p minecraft:glowing 1000000 0 true')
+                                # Chat system got updated in 1.13
+                                if protocol_version > 340:
+                                    utils.send_chat_message(connection, serverbound,
+                                                            '/effect give @s minecraft:glowing 1000000 0 true')
+                                else:
+                                    utils.send_chat_message(connection, serverbound,
+                                                            '/effect @p minecraft:glowing 1000000 0 true')
                 except:
                     pass
 
