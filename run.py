@@ -158,6 +158,9 @@ def run(config, email, password, debug, address):
                         name = chat['with'][0]['hoverEvent']['value']['text'].split(':"')[1].split('"', 1)[0]
                         uuid = chat['with'][0]['hoverEvent']['value']['text'].split(':"')[2].split('"', 1)[0]
                         message = chat['with'][1]
+                        if message == '!updateops':
+                            utils.request_ops(connection, serverbound, protocol_version)
+                            utils.send_chat_message(connection, serverbound, 'Updating OP list')
                         if name in opped_players:
                             print('<' + name + '(OP)> ' + message)
                         else:
