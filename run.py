@@ -37,7 +37,10 @@ def run(config, email, password, debug, address):
         ready_to_read = select.select([connection.socket], [], [], 0)[0]
         if ready_to_read:
             t = int(time.time() * 1000)
-            packet_in = connection.receive_packet()
+            try:
+                packet_in = connection.receive_packet()
+            except IOError:
+                break
             packet_recorded = int(t - start_time - afk_time).to_bytes(4, byteorder='big', signed=True)
             packet_recorded += len(packet_in.received).to_bytes(4, byteorder='big', signed=True)
             packet_recorded += packet_in.received
