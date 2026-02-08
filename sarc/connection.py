@@ -1,8 +1,9 @@
-import zlib
 import socket
-from packet import *
+import zlib
 from cryptography.hazmat.backends import default_backend
 from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
+
+from sarc.packet import Packet
 
 
 # Socket connection to the minecraft server

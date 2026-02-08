@@ -1,0 +1,21 @@
+[project]
+name = "sarc"
+version = "0.1.0"
+description = " Stand Alone Replay Client"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "cryptography>=43.0.3",
+    "requests>=2.32.3",
+]
+
+[project.scripts]
+sarc = "sarc.cli:main"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["sarc"]
+include = ["sarc/config.example.json"]

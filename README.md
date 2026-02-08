@@ -2,117 +2,83 @@
 
 Written in Python.
 
-
 ## General
 
-This is a stand alone client to join Minecraft servers. The client is able to record the incoming packets of the server in the `.TMCPR` format which is compatible with ReplayMod.
-This client can be used as lightweight AFK client when recording is disabled.
-The main purpose of this client is the recording of long timelapses.
-This client can join vanilla servers and does **not** require any server side support like plugins. It should be able to join custom servers like spigot aswell since it performs the vanilla joining handshake. Any kind of server side anti cheat is probably going to cause issues.
-The used Account should be opped and in spectator mode. Basic functionality might exist, however using an account without op is not supported or tested.
+SARC is a stand-alone client that records incoming packets into `.TMCPR` files compatible with ReplayMod.
+It targets long-running recordings and can be used as a lightweight AFK client when recording is disabled.
+SARC only supports Minecraft 1.12.2 (protocol 340).
 
-#### Advantages compared to normal user recording with ReplayMod
+Authentication is supported only via SelfhostedYggdrasil: https://github.com/Robitobi01/SelfhostedYggdrasil
 
-- Can be hosted serverside for 24/7 recording
+The pre-refactor version lives in the legacy branch.
 
-- The client detects players in the recorded area and pauses the recording while no player is detected
+## CLI
 
-- There are many optimisations made to the type and amount of recorded packets to decrease filesize of replays as much as possible so the ReplayMod can handle replays with many hours of footage
+SARC is a command-line application. You must provide a config via `-c`.
 
-- Several options to modify the world
-
-- Recording can be turned off for only afking
-
+```bash
+sarc -g
+sarc -c /path/to/config.json
+```
 
 ## Configuration
 
-```ip``` : IP-Address of the Minecraft server.
+```ip``` : IP address of the Minecraft server.
 
 ```port``` : Port of the Minecraft server.
 
-```username``` : Username or email for the used Minecraft account.
+```username``` : Username used for login and command targeting.
 
-```password``` : Password for the used Minecraft account.
+```uuid``` : UUID of the account.
 
-```recording``` : True if SARC should actually record anything.
+```session_server``` : SelfhostedYggdrasil join URL (e.g. `http://localhost/session/minecraft/join`).
 
-```minimal_packets``` : SARC will only record the minimum needed packets for a proper recording. This should be used to decrease the filesize of recordings while recording long term projects. (Warning: Maps will dissapear)
+```auth_string``` : Optional auth string passed to the join endpoint.
 
-```daytime``` : Sets the daytime once to the defined time in the recording and ignores all further changes from the server. If set to `-1` the normal day/night cycle is recorded.
+```recording``` : True if SARC should record packets.
 
-```weather``` : Turns weather in the recording on or off.
+```minimal_packets``` : Only record the minimum packets needed for a proper replay.
 
-```remove_items``` : If set to true, all dropped items wont be recorded. This can potentially decrease filesize.
+```daytime``` : Sets the daytime once in the recording and ignores further changes. Use `-1` for normal cycle.
 
-```remove_bats``` : If set to true, bats wont be recorded. This can potentially decrease filesize.
+```weather``` : Turns weather recording on or off.
 
-```debug_mode``` : Outputs all received, sent and recorded packets.
+```remove_items``` : If true, dropped items are not recorded.
 
-```auto_relog``` : If this option is enabled and the client gets disconnected, it will automatically reconnect after 3 seconds.
+```remove_bats``` : If true, bats are not recorded.
 
-```require_op``` : If true, the client will only accept commands by opped players.
+```debug_mode``` : Outputs all received, sent, and recorded packets.
 
+```auto_relog``` : If enabled, the client reconnects after 3 seconds on disconnect.
 
-## Other
+```filesize_limit_mb``` : Maximum recording file size in megabytes (MB).
 
-To reduce hassle with big files in ReplayMod, SARC automatically switches to a new file after the recording reached 300MB.
-The SARC account should be opped and in spectator mode to make the following ingame commands avaliable:
+```recording_time_limit_min``` : Maximum recording duration in minutes.
 
-```!relog``` : Relogs the client and starts recording in a new file.
+## Commands
 
-```!stop``` : Disconnects the client and stops recording.
+Commands can be targeted to a specific SARC instance by adding the username:
+`!ping MyRecorder`
+If no username is provided, all SARC clients respond.
 
-```!ping``` : Sends a pong response back for testing.
+```!relog``` : Relogs and starts recording in a new file.
 
-```!filesize``` : Sends current filesize of the recording.
+```!stop``` : Disconnects and stops recording.
 
-```!time``` : Sends the length of current recording.
+```!ping``` : Sends a pong response.
 
-```!timeonline``` : Sends the elapsed time since SARC was connected.
+```!filesize``` : Sends current recording size.
 
-```!move``` : Teleports the SARC account to the executer.
+```!time``` : Sends length of current recording.
 
-```!glow``` : Gives the SARC account glowing effect for better visibility.
+```!timeonline``` : Sends elapsed time since SARC connected.
 
+```!move``` : Teleports the SARC account to the requester.
 
-
-## Currrently avaliable protocol versions:
-4 - Minecraft 1.7.2 & 1.7.4 & 1.7.5
-
-5 - Minecraft 1.7.6 & 1.7.7 & 1.7.8 & 1.7.9 & 1.7.10
-
-47 - Minecraft 1.8 & 1.8.1 & 1.8.2 & 1.8.3 & 1.8.4 & 1.8.5 & 1.8.6 & 1.8.7 & 1.8.8 & 1.8.9
-
-107 - Minecraft 1.9
-
-109 - Minecraft 1.9.2
-
-110 - Minecraft 1.9.3 & 1.9.4
-
-210 - Minecraft 1.10 & 1.10.1 & 1.10.2
-
-315 - Minecraft 1.11
-
-316 - Minecraft 1.11.1 & 1.11.2
-
-335 - Minecraft 1.12
-
-338 - Minecraft 1.12.1
-
-340 - Minecraft 1.12.2
-
-401 - Minecraft 1.13.1
-
-404 - Minecraft 1.13.2
-
-498 - Minecraft 1.14.4
-
-578 - Minecraft 1.15.2
-
-
-SARC only interacts with a very small amount of different packet types, all other packets just get saved to a file. Therefor changes to the procol often have very little effect on this client.
+```!glow``` : Gives the SARC account glowing effect.
 
 ## Developers
+
 - Robi
 - Nessie
 - Thanks to elij for help

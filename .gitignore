@@ -1,8 +1,4 @@
 .idea/
 __pycache__/
-accessToken.json
-protocol.json
-metaData.json
-config.json
 recording.tmcpr
 *.mcpr

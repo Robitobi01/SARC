@@ -1,0 +1,18 @@
+{
+  "auto_relog": false,
+  "debug_mode": false,
+  "remove_bats": true,
+  "remove_items": true,
+  "weather": false,
+  "daytime": 6000,
+  "minimal_packets": true,
+  "recording": false,
+  "filesize_limit_mb": 150,
+  "recording_time_limit_min": 300,
+  "auth_string": "",
+  "session_server": "https://dugged.net/session/minecraft/join",
+  "uuid": "df97d4ac37ae4a87a272b9032b7e3f6f",
+  "username": "SARC",
+  "port": "25565",
+  "ip": "127.0.0.1"
+}

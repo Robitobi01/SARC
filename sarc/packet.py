@@ -1,6 +1,5 @@
-import uuid
 import struct
-from connection import *
+import uuid
 
 
 class Packet:
