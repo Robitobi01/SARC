@@ -82,4 +82,5 @@ class TCPConnection(Packet):
         self.socket.close()
 
     def __del__(self):
-        self.socket.close()
+        if hasattr(self, 'socket'):
+            self.socket.close()

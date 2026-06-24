@@ -27,6 +27,11 @@ def run_recorder(config, debug, address, connection):
     file_size = 0
     afk_time = 0
     last_t = 0
+    player_x = 0.0
+    player_y = 0.0
+    player_z = 0.0
+    player_yaw = 0.0
+    player_pitch = 0.0
     if config.get('recording', False):
         open('recording.tmcpr', 'w').close()
     time.sleep(0.5)
@@ -48,6 +53,13 @@ def run_recorder(config, debug, address, connection):
             packet_name = CLIENTBOUND[str(packet_id)]
             if debug:
                 print('P Packet ' + hex(packet_id) + ': ' + packet_name)
+
+            if packet_name == 'Disconnect (play)':
+                try:
+                    print('Disconnect reason: ' + packet_in.read_utf())
+                except Exception:
+                    print('Disconnect reason: <failed to parse>')
+                break
 
             if packet_name == 'Keep Alive (clientbound)':
                 packet_out = Packet()
@@ -94,9 +106,36 @@ def run_recorder(config, debug, address, connection):
                 pitch = packet_in.read_float()
                 flag = packet_in.read_byte()
                 teleport_id = packet_in.read_varint()
+
+                if flag & 0x01:
+                    x += player_x
+                if flag & 0x02:
+                    y += player_y
+                if flag & 0x04:
+                    z += player_z
+                if flag & 0x08:
+                    yaw += player_yaw
+                if flag & 0x10:
+                    pitch += player_pitch
+                player_x = x
+                player_y = y
+                player_z = z
+                player_yaw = yaw
+                player_pitch = pitch
+
                 packet_out = Packet()
                 packet_out.write_varint(SERVERBOUND['Teleport Confirm'])
                 packet_out.write_varint(teleport_id)
+                connection.send_packet(packet_out)
+
+                packet_out = Packet()
+                packet_out.write_varint(SERVERBOUND['Player Position And Look (serverbound)'])
+                packet_out.write_double(player_x)
+                packet_out.write_double(player_y)
+                packet_out.write_double(player_z)
+                packet_out.write_float(player_yaw)
+                packet_out.write_float(player_pitch)
+                packet_out.write_bool(False)
                 connection.send_packet(packet_out)
 
             if packet_name == 'Spawn Player':
