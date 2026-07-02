@@ -15,7 +15,7 @@ from sarc.protocol import CLIENTBOUND, SERVERBOUND, MC_VERSION, PROTOCOL_VERSION
 def run_recorder(config, debug, address, connection):
     start_time = int(time.time() * 1000)
     last_player_movement = start_time
-    should_restart = False
+    should_restart = config.get('auto_relog', False)
     client_name = config.get('username', '').strip()
     client_name_lower = client_name.lower()
     entity_packets = ['Entity', 'Entity Relative Move', 'Entity Look And Relative Move', 'Entity Look',
@@ -87,9 +87,10 @@ def run_recorder(config, debug, address, connection):
                 world_age = packet_in.read_long()
                 packet_daytime.write_long(world_age)
                 packet_daytime.write_long(-config['daytime'])
+                packet_daytime_data = packet_daytime.flush()
                 packet_recorded = int(t - start_time).to_bytes(4, byteorder='big', signed=True)
-                packet_recorded += len(packet_daytime.received).to_bytes(4, byteorder='big', signed=True)
-                packet_recorded += packet_daytime.received
+                packet_recorded += len(packet_daytime_data).to_bytes(4, byteorder='big', signed=True)
+                packet_recorded += packet_daytime_data
                 write_buffer += packet_recorded
                 BAD_PACKETS.append('Time Update')
 
@@ -247,15 +248,13 @@ def run_recorder(config, debug, address, connection):
 
             last_t = t
 
-            if config['recording'] and file_size > 150000000:
-                pass
-
             if config['recording']:
                 limit_mb = config.get('filesize_limit_mb', 150)
                 if file_size > int(limit_mb * 1000000):
                     curr_mb = round(file_size / 1000000, 1)
                     print(f'Filesize limit reached! limit: {limit_mb}MB, current: {curr_mb}MB')
-                    send_chat_message(connection, SERVERBOUND, f'Filesize limit reached ({limit_mb}MB), current {curr_mb}MB, restarting...')
+                    send_chat_message(connection, SERVERBOUND,
+                                      f'Filesize limit reached ({limit_mb}MB), current {curr_mb}MB, restarting...')
                     should_restart = True
                     time.sleep(1)
                     break
@@ -265,7 +264,8 @@ def run_recorder(config, debug, address, connection):
                 if recorded_ms > limit_min * 60 * 1000:
                     recorded_min = round(recorded_ms / (60 * 1000), 1)
                     print(f'Recording time limit reached! limit: {limit_min}min, current: {recorded_min}min')
-                    send_chat_message(connection, SERVERBOUND, f'Recording time limit reached ({limit_min}min), current {recorded_min}min, restarting...')
+                    send_chat_message(connection, SERVERBOUND,
+                                      f'Recording time limit reached ({limit_min}min), current {recorded_min}min, restarting...')
                     should_restart = True
                     time.sleep(1)
                     break

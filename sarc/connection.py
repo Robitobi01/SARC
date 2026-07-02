@@ -6,10 +6,12 @@ from cryptography.hazmat.primitives.ciphers import Cipher, algorithms, modes
 from sarc.packet import Packet
 
 
-# Socket connection to the minecraft server
 class TCPConnection(Packet):
     def __init__(self, addr, debug=False, timeout=10):
         Packet.__init__(self)
+        self.decryptor = None
+        self.encryptor = None
+        self.cipher = None
         self.encrypt = False
         self.debug = debug
         self.compression_threshold = None
@@ -34,7 +36,6 @@ class TCPConnection(Packet):
         packet_in = Packet()
         raw_data = self.read(packet_length)
 
-        # Decompress if needed
         if self.compression_threshold is not None:
             raw_packet = Packet()
             raw_packet.receive(raw_data)
@@ -46,7 +47,6 @@ class TCPConnection(Packet):
         return packet_in
 
     def send_packet(self, packet_out):
-        # Compress if needed
         if self.compression_threshold is not None:
             data_length = len(packet_out.sent)
             raw_packet = packet_out.flush()
@@ -70,7 +70,6 @@ class TCPConnection(Packet):
             print('Sending packet: ' + str(packet_out.sent))
         self.write(packet_out.flush())
 
-    # Configures the encryption from given key
     def configure_encryption(self, secret_key):
         self.cipher = Cipher(algorithms.AES(secret_key), modes.CFB8(secret_key), backend=default_backend())
         self.encryptor = self.cipher.encryptor()
