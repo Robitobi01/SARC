@@ -1,4 +1,7 @@
 .idea/
 __pycache__/
+.venv/
+result
 recording.tmcpr
+metaData.json
 *.mcpr

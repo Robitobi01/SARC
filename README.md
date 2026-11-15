@@ -77,6 +77,14 @@ If no username is provided, all SARC clients respond.
 
 ```!glow``` : Gives the SARC account glowing effect.
 
+## Nix
+
+`package.nix` builds SARC with the host's Python (`pkgs.callPackage ./package.nix { }`);
+`nix-shell` gives a development shell, run it there with `python -m sarc -c config.json`.
+
+The environment variable `SARC_AUTH_STRING` overrides `auth_string` from the config, so the
+secret can stay out of the config file (e.g. a systemd `EnvironmentFile`).
+
 ## Developers
 
 - Robi

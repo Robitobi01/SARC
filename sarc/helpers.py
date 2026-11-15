@@ -1,3 +1,4 @@
+import os
 import json
 
 BAD_PACKETS = [
@@ -53,6 +54,10 @@ def load_config(path):
         raise ValueError(f"Config file not found: {path}")
     except json.JSONDecodeError as e:
         raise ValueError(f"Failed to parse JSON config {path}: {e.msg} (line {e.lineno} column {e.colno})")
+
+    # Secret from the environment instead of the config file (e.g. systemd EnvironmentFile)
+    if os.environ.get("SARC_AUTH_STRING"):
+        config["auth_string"] = os.environ["SARC_AUTH_STRING"]
 
     required = ["ip", "port", "username", "uuid", "session_server"]
     missing = [k for k in required if k not in config]
